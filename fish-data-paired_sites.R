@@ -18,7 +18,7 @@ plot_folder <- paste0(analysis_path,"/Plots")
 paired <- df %>% 
   filter(Site_Type == 'paired') %>% 
   left_join(pair_list) %>% 
-  select(1:6,118:119,7:116)
+  select(1:7,120:121,8:118)
 
 
 # scone <- paired %>% 
@@ -27,7 +27,7 @@ paired <- df %>%
 #   pivot_wider(names_from = Year, values_from = INDIVIDUALS)
 
 paired_differences <- paired %>% 
-  pivot_longer(cols = INDIVIDUALS:COSUBPIND, names_to = "Metric", values_to = "Value", values_drop_na = F) %>% 
+  pivot_longer(cols = IBI:COSUBPIND, names_to = "Metric", values_to = "Value", values_drop_na = F) %>% 
   select(-c(Site_ID, PU_Gap_Code, Reach_Name, Event_Date, Site_Type)) %>% 
   group_by(Metric, Pair_Number, Year) %>%
   pivot_wider(names_from = CRP_Class, values_from = Value) %>% 

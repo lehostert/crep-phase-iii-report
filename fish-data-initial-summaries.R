@@ -9,10 +9,7 @@ plot_folder <- paste0(analysis_path,"/Plots")
 
 metrics <- read_csv(file = paste0(analysis_path, "/Fish_Metrics_CREP_2013-2020.csv"))
 id <- read_csv(file = paste0(analysis_path, "/id_table_CREP_2013-2020_P3FR.csv"))
-
-### This uses all of the site data if you want to remove sites with limited numbers of species or individuals use the following:
-# metrics_df <- metrics %>% 
-#   filter(RICHNESS >5, INDIVIDUALS > 20)
+ibi <- read_csv(file = paste0(network_path, "/Data/Data_IN/IBI/IBI_Output_2013_2020.csv"))
 
 
 #### Create summary of Fish Metric Data ####
@@ -21,21 +18,27 @@ library(psych)
 metrics_summary <- describe(metrics)
 write.csv(metrics_summary, paste0(analysis_path,"/Fish_Metrics_summary_stats_2013-2020_allsites.csv"))
 
+#### Simplify IBI ####
+ibi <- ibi %>% 
+  select(PU_Gap_Code, Reach_Name, Event_Date = `Sample Date`, IBI)
+
+
 #### Now you can compare the different types ####
 
 df <- id %>% 
-  left_join(metrics)
+  left_join(metrics) %>% 
+  left_join(ibi)
 
 df$Year <- as.factor(lubridate::year(df$Event_Date))
 df$Site_Type <- as.factor(df$Site_Type)
 
 df <- df %>% 
-  select(1:4,116,5:115)
+  select(1:4,117,5,116,6:115)
 
 df <- df %>% 
   mutate(Phase = if_else(Year == 2013|Year == 2014|Year == 2015, 'Phase I', 
                          if_else(Year == 2016|Year == 2017, 'Phase II', 'Phase III'))) %>% 
-  select(1:5,117,6, 7:116)
+  select(1:5,118,6:117)
 
 theme_update(plot.title = element_text(hjust = 0.5))
 
@@ -61,7 +64,7 @@ summary_all_sites_1320 <- df %>%
   )
 
 summary_sites_1320 <- df %>%
-  pivot_longer(cols = INDIVIDUALS:COSUBPIND, names_to = "Metric", values_to = "Value", values_drop_na = F) %>% 
+  pivot_longer(cols = IBI:COSUBPIND, names_to = "Metric", values_to = "Value", values_drop_na = F) %>% 
   group_by(Metric) %>% 
   summarize(Total_Sites = n_distinct(Site_ID),
             Total_Fish = sum(Value),
@@ -76,7 +79,7 @@ summary_sites_1320_IRDEonly <- summary_sites_1320 %>%
   filter(Metric == "INDIVIDUALS"|Metric == "RICHNESS"|Metric == "DIVERSITY"|Metric == "EVENNESS")
 
 summary_sites_by_year_1320 <- df %>%
-  pivot_longer(cols = INDIVIDUALS:COSUBPIND, names_to = "Metric", values_to = "Value", values_drop_na = F) %>% 
+  pivot_longer(cols = IBI:COSUBPIND, names_to = "Metric", values_to = "Value", values_drop_na = F) %>% 
   group_by(Year, Metric) %>% 
   summarize(Total_Sites = n_distinct(Site_ID),
             Total_Fish = sum(Value),
@@ -95,7 +98,7 @@ summary_sitetypes_1320 <- df %>%
   summarize(Total_Sites = n())
 
 summary_sites_by_type_1320 <- df %>%
-  pivot_longer(cols = INDIVIDUALS:COSUBPIND, names_to = "Metric", values_to = "Value", values_drop_na = F) %>% 
+  pivot_longer(cols = IBI:COSUBPIND, names_to = "Metric", values_to = "Value", values_drop_na = F) %>% 
   group_by(Site_Type, Metric) %>% 
   summarize(Total_Sites = n_distinct(Site_ID),
             Total_Fish = sum(Value),
@@ -342,4 +345,158 @@ ggsave("richness_1320_isws_repeated_measures.pdf", width = 8, height = 8, path =
 write_csv(df, path = paste0(analysis_path, "/fish_metrics_all_sites_withID_1320.csv")) 
 
 
+#### Summary by Site Type per Phase ####
+summary_sites_by_phase_type_1320 <- df %>%
+  pivot_longer(cols = IBI:COSUBPIND, names_to = "Metric", values_to = "Value", values_drop_na = F) %>% 
+  group_by(Phase, Site_Type, Metric) %>% 
+  summarize(Total_Sites = n_distinct(Site_ID),
+            Total_Fish = sum(Value),
+            Mean.metric = mean(Value),
+            Min.metric = min(Value),
+            Max.metric = max(Value),
+            N.metric = n(),
+            SD.metric =sd(Value, na.rm = TRUE)
+  ) %>% 
+  mutate(SE.metric = SD.metric / sqrt(N.metric),
+         Lower.ci = Mean.metric - qt(1 - (0.05 / 2), N.metric - 1) * SE.metric,
+         Upper.ci = Mean.metric + qt(1 - (0.05 / 2), N.metric - 1) * SE.metric)
 
+#### Summary by Phase ####
+summary_sites_by_phase_1320 <- df %>%
+  pivot_longer(cols = IBI:COSUBPIND, names_to = "Metric", values_to = "Value", values_drop_na = F) %>% 
+  group_by(Phase, Metric) %>% 
+  summarize(Total_Sites = n_distinct(Site_ID),
+            Total_Fish = sum(Value),
+            Mean.metric = mean(Value),
+            Min.metric = min(Value),
+            Max.metric = max(Value),
+            N.metric = n(),
+            SD.metric =sd(Value, na.rm = TRUE)
+  ) %>% 
+  mutate(SE.metric = SD.metric / sqrt(N.metric),
+         Lower.ci = Mean.metric - qt(1 - (0.05 / 2), N.metric - 1) * SE.metric,
+         Upper.ci = Mean.metric + qt(1 - (0.05 / 2), N.metric - 1) * SE.metric)    
+
+for (met in metric_list) {
+summary_sites_by_phase_1320 %>%
+  filter(Metric == met) %>% 
+  ggplot() +
+  geom_bar( aes(x=Phase, y= Mean.metric), stat="identity", alpha=0.7)+
+  geom_errorbar( aes(x=Phase, ymin=Lower.ci, ymax=Upper.ci), width=0.25, alpha=0.9, size=1.25) +
+  geom_pointrange( aes(x=Phase, y=Mean.metric, ymin=Lower.ci, ymax=Upper.ci), alpha=0.9, size=1.25) +
+  scale_color_viridis()+
+  labs(y = paste0("Mean ", stringr::str_to_title(met)), 
+       title = paste0("Mean", stringr::str_to_title(met)," of All Sites by Project Phase"), 
+       caption = "Metric mean with 95% Confidence Intervals")
+ 
+  ggsave(paste0(str_to_lower(met),"_1320_barplot_CI_by_phase.pdf"), 
+         width = 8, 
+         height = 8, 
+         path = paste0(plot_folder, "/ByPhase"), units = "in")
+}
+
+
+#### Summary Random Only by Phase ####
+summary_random_sites_by_phase_1320 <- df %>%
+  filter(Site_Type == "random") %>% 
+  pivot_longer(cols = IBI:COSUBPIND, names_to = "Metric", values_to = "Value", values_drop_na = F) %>% 
+  group_by(Phase, Metric) %>% 
+  summarize(Total_Sites = n_distinct(Site_ID),
+            Total_Fish = sum(Value),
+            Mean.metric = mean(Value),
+            Min.metric = min(Value),
+            Max.metric = max(Value),
+            N.metric = n(),
+            SD.metric =sd(Value, na.rm = TRUE)
+  ) %>% 
+  mutate(SE.metric = SD.metric / sqrt(N.metric),
+         Lower.ci = Mean.metric - qt(1 - (0.05 / 2), N.metric - 1) * SE.metric,
+         Upper.ci = Mean.metric + qt(1 - (0.05 / 2), N.metric - 1) * SE.metric)    
+
+for (met in metric_list) {
+  summary_random_sites_by_phase_1320 %>%
+    filter(Metric == met) %>% 
+    ggplot() +
+    geom_bar( aes(x=Phase, y= Mean.metric), stat="identity", alpha=0.7)+
+    geom_errorbar( aes(x=Phase, ymin=Lower.ci, ymax=Upper.ci), width=0.25, alpha=0.9, size=1.25) +
+    geom_pointrange( aes(x=Phase, y=Mean.metric, ymin=Lower.ci, ymax=Upper.ci), alpha=0.9, size=1.25) +
+    scale_color_viridis()+
+    labs(y = paste0("Mean ", stringr::str_to_title(met)), 
+         title = paste0("Mean", stringr::str_to_title(met)," of Random Sites by Project Phase"), 
+         caption = "Metric mean with 95% Confidence Intervals")
+  
+  ggsave(paste0(str_to_lower(met),"_1320_barplot_CI_random_by_phase.pdf"), 
+         width = 8, 
+         height = 8, 
+         path = paste0(plot_folder, "/Random_ByPhase"), units = "in")
+}
+
+##### Summary Copper Slough/Sensitive Species Sites 
+summary_copper_sites_by_phase_1320 <- df %>%
+filter(Site_Type == "copper") %>% 
+  pivot_longer(cols = IBI:COSUBPIND, names_to = "Metric", values_to = "Value", values_drop_na = F) %>% 
+  group_by(Phase, Metric) %>% 
+  summarize(Total_Sites = n_distinct(Site_ID),
+            Total_Fish = sum(Value),
+            Mean.metric = mean(Value),
+            Min.metric = min(Value),
+            Max.metric = max(Value),
+            N.metric = n(),
+            SD.metric =sd(Value, na.rm = TRUE)
+  ) %>% 
+  mutate(SE.metric = SD.metric / sqrt(N.metric),
+         Lower.ci = Mean.metric - qt(1 - (0.05 / 2), N.metric - 1) * SE.metric,
+         Upper.ci = Mean.metric + qt(1 - (0.05 / 2), N.metric - 1) * SE.metric)    
+
+for (met in metric_list) {
+  summary_copper_sites_by_phase_1320 %>%
+    filter(Metric == met) %>% 
+    ggplot() +
+    geom_bar( aes(x=Phase, y= Mean.metric), stat="identity", alpha=0.7)+
+    geom_errorbar( aes(x=Phase, ymin=Lower.ci, ymax=Upper.ci), width=0.25, alpha=0.9, size=1.25) +
+    geom_pointrange( aes(x=Phase, y=Mean.metric, ymin=Lower.ci, ymax=Upper.ci), alpha=0.9, size=1.25) +
+    scale_color_viridis()+
+    labs(y = paste0("Mean ", stringr::str_to_title(met)), 
+         title = paste0("Mean", stringr::str_to_title(met)," of Sensitive Species Sites by Project Phase"), 
+         caption = "Metric mean with 95% Confidence Intervals")
+  
+  ggsave(paste0(str_to_lower(met),"_1320_barplot_CI_random_by_phase.pdf"), 
+         width = 8, 
+         height = 8, 
+         path = paste0(plot_folder, "/Copper_ByPhase"), units = "in")
+}
+
+##### Summary Plots LD Sites by Year
+summary_ld_sites_by_phase_1320 <- df %>%
+  filter(Site_Type == "less_disturbed") %>% 
+  pivot_longer(cols = IBI:COSUBPIND, names_to = "Metric", values_to = "Value", values_drop_na = F) %>% 
+  group_by(Year, Metric) %>% 
+  summarize(Total_Sites = n_distinct(Site_ID),
+            Total_Fish = sum(Value),
+            Mean.metric = mean(Value),
+            Min.metric = min(Value),
+            Max.metric = max(Value),
+            N.metric = n(),
+            SD.metric =sd(Value, na.rm = TRUE)
+  ) %>% 
+  mutate(SE.metric = SD.metric / sqrt(N.metric),
+         Lower.ci = Mean.metric - qt(1 - (0.05 / 2), N.metric - 1) * SE.metric,
+         Upper.ci = Mean.metric + qt(1 - (0.05 / 2), N.metric - 1) * SE.metric)    
+
+for (met in metric_list) {
+  summary_ld_sites_by_phase_1320 %>%
+    filter(Metric == met) %>% 
+    ggplot() +
+    geom_bar( aes(x=Year, y= Mean.metric), stat="identity", alpha=0.7)+
+    geom_errorbar( aes(x=Year, ymin=Lower.ci, ymax=Upper.ci), width=0.25, alpha=0.9, size=1.25) +
+    geom_pointrange( aes(x=Year, y=Mean.metric, ymin=Lower.ci, ymax=Upper.ci), alpha=0.9, size=1.25) +
+    scale_color_viridis()+
+    labs(y = paste0("Mean ", stringr::str_to_title(met)), 
+         title = paste0("Mean", stringr::str_to_title(met)," of Less Disturbed Sites by Year"), 
+         caption = "Metric mean with 95% Confidence Intervals")
+  
+  ggsave(paste0(str_to_lower(met),"_1320_barplot_CI_ld_by_year.pdf"), 
+         width = 8, 
+         height = 8, 
+         path = paste0(plot_folder, "/LD_ByYear"), units = "in")
+}

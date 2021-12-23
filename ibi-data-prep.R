@@ -10,6 +10,7 @@ ibi_20 <- readxl::read_xlsx(path = paste0(network_path,"/Data/Data_OUT/IBI/IBI_O
 ibi_19 <- readxl::read_xlsx(path = paste0(network_path,"/Data/Data_OUT/IBI/IBI_Output_2019.xlsx"))
 ibi_18 <- readxl::read_xlsx(path = paste0(network_path,"/Data/Data_OUT/IBI/IBI_Output_2018.xlsx"))
 ibi_1317 <- readxl::read_xlsx(path = paste0(network_path,"/Data/Data_OUT/IBI/IBI_Attributes_Metrics_Score_2013-2017.xlsx"))
+ibi_1417 <- readxl::read_xlsx(path = paste0(network_path,"/Data/Data_OUT/IBI/IBI_Output_2014-2017_missing_ouput.xlsx"), sheet = 2)
 
 # Combine then pull just IBI Score, Reach Name, Event Date, PUGap_Code
 
@@ -30,10 +31,14 @@ ibi_all <- ibi_18 %>%
   full_join(ibi_19) %>% 
   full_join(ibi_20) %>% 
   select(-c(`IBI Region`, `IEPA Station`)) %>% 
-  full_join(ibi_1317)
+  full_join(ibi_1317) %>% 
+  full_join(ibi_1417)
 
 ibi_all$PU_Gap_Code <- str_replace(ibi_all$PU_Gap_Code, "KASKY", "kasky")
 ibi_all$Reach_Name <- str_replace(ibi_all$Reach_Name, "KASKY", "kasky")
+ibi_all$Reach_Name <- str_replace(ibi_all$Reach_Name, "copper", "Copper ")
+ibi_all$Reach_Name <- str_replace(ibi_all$Reach_Name, "CTAP Copper  SI.", "CTAP copper SI.")
+
 
 write_csv(ibi_all, paste0(network_path, "/Data/Data_IN/IBI/IBI_Output_2013_2020.csv"))
 

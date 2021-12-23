@@ -10,7 +10,7 @@ analysis_path <- paste0(network_prefix,"/ResearchData/Groups/Kaskaskia_CREP/Anal
 
 #### Connect to Database ####
 ### with odbc
-odbcListDrivers() # to get a list of the drivers your computer knows about 
+odbcListDrivers() # to get a list of the drivers your computer knows about, be sure there is one for MS Access
 # con <- dbConnect(odbc::odbc(), "Testing_Database")
 con <- dbConnect(odbc::odbc(), "2019_CREP_Database")
 options(odbc.batch_rows = 1) # Must be defined as 1 for Access batch writing or appending to tables See below.
@@ -19,6 +19,7 @@ dbListTables(con) # To get the list of tables in the database
 loc <- as_tibble(tbl(con, "Established_Locations"))
 fmd <- as_tibble(tbl(con, "Fish_Metadata"))
 fish <- as_tibble(tbl(con, "Fish_Abundance"))
+pair_list <- as_tibble(tbl(con, "Paired_Site_Groupings"))
 
 dbDisconnect(con)
 
@@ -32,7 +33,6 @@ fish_data <- fish %>%
   summarise(Fish_Species_Count = n()) %>% 
   ungroup()
 
-fish_data <- ungroup(fish_data)
 fish_data$Site_ID <-paste(str_replace_all(fish_data$Reach_Name, "[:blank:]", ""), str_replace_all(fish_data$Event_Date,"-",""), sep = "_")
 
 #### Add fish traits ####

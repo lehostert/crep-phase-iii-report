@@ -3,7 +3,7 @@ library(docstring)
 library(viridis)
 
 network_prefix <- if_else(as.character(Sys.info()["sysname"]) == "Windows", "//INHS-Bison.ad.uillinois.edu", "/Volumes")
-analysis_path <- paste0(network_prefix,"/ResearchData/Groups/Kaskaskia_CREP/Analysis/Fish/PhaseIII_Analysis")
+analysis_path <- paste0(network_prefix,"/ResearchData/Groups/StreamEcologyLab/CREP/Analysis/Fish/PhaseIII_Analysis")
 ## Analysis folder is the fold for saving _this_ particular run
 plot_folder <- paste0(analysis_path,"/Plots")
 
@@ -344,6 +344,8 @@ ggsave("richness_1320_isws_repeated_measures.pdf", width = 8, height = 8, path =
 
 write_csv(df, path = paste0(analysis_path, "/fish_metrics_all_sites_withID_1320.csv")) 
 
+#### After the December meeting re. the analysis the following code was added to simplify the Analysis. 
+
 
 #### Summary by Site Type per Phase ####
 summary_sites_by_phase_type_1320 <- df %>%
@@ -386,7 +388,7 @@ summary_sites_by_phase_1320 %>%
   geom_pointrange( aes(x=Phase, y=Mean.metric, ymin=Lower.ci, ymax=Upper.ci), alpha=0.9, size=1.25) +
   scale_color_viridis()+
   labs(y = paste0("Mean ", stringr::str_to_title(met)), 
-       title = paste0("Mean", stringr::str_to_title(met)," of All Sites by Project Phase"), 
+       title = paste0("Mean ", stringr::str_to_title(met)," of All Sites by Project Phase"), 
        caption = "Metric mean with 95% Confidence Intervals")
  
   ggsave(paste0(str_to_lower(met),"_1320_barplot_CI_by_phase.pdf"), 
@@ -422,7 +424,7 @@ for (met in metric_list) {
     geom_pointrange( aes(x=Phase, y=Mean.metric, ymin=Lower.ci, ymax=Upper.ci), alpha=0.9, size=1.25) +
     scale_color_viridis()+
     labs(y = paste0("Mean ", stringr::str_to_title(met)), 
-         title = paste0("Mean", stringr::str_to_title(met)," of Random Sites by Project Phase"), 
+         title = paste0("Mean ", stringr::str_to_title(met)," of Random Sites by Project Phase"), 
          caption = "Metric mean with 95% Confidence Intervals")
   
   ggsave(paste0(str_to_lower(met),"_1320_barplot_CI_random_by_phase.pdf"), 
@@ -430,6 +432,9 @@ for (met in metric_list) {
          height = 8, 
          path = paste0(plot_folder, "/Random_ByPhase"), units = "in")
 }
+
+### After reviewing these plots I am going to move forward with Richness, Shannon Diversity, IBI, Individuals , 
+### CATOPTAX, INTOLPTAX, MODTOLPTAX, TOLRPTAX
 
 ##### Summary Copper Slough/Sensitive Species Sites 
 summary_copper_sites_by_phase_1320 <- df %>%
@@ -457,7 +462,7 @@ for (met in metric_list) {
     geom_pointrange( aes(x=Phase, y=Mean.metric, ymin=Lower.ci, ymax=Upper.ci), alpha=0.9, size=1.25) +
     scale_color_viridis()+
     labs(y = paste0("Mean ", stringr::str_to_title(met)), 
-         title = paste0("Mean", stringr::str_to_title(met)," of Sensitive Species Sites by Project Phase"), 
+         title = paste0("Mean ", stringr::str_to_title(met)," of Sensitive Species Sites by Project Phase"), 
          caption = "Metric mean with 95% Confidence Intervals")
   
   ggsave(paste0(str_to_lower(met),"_1320_barplot_CI_random_by_phase.pdf"), 
@@ -492,7 +497,7 @@ for (met in metric_list) {
     geom_pointrange( aes(x=Year, y=Mean.metric, ymin=Lower.ci, ymax=Upper.ci), alpha=0.9, size=1.25) +
     scale_color_viridis()+
     labs(y = paste0("Mean ", stringr::str_to_title(met)), 
-         title = paste0("Mean", stringr::str_to_title(met)," of Less Disturbed Sites by Year"), 
+         title = paste0("Mean ", stringr::str_to_title(met)," of Less Disturbed Sites by Year"), 
          caption = "Metric mean with 95% Confidence Intervals")
   
   ggsave(paste0(str_to_lower(met),"_1320_barplot_CI_ld_by_year.pdf"), 

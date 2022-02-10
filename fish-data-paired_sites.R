@@ -2,8 +2,8 @@ library(tidyverse)
 library(ggplot2)
 
 network_prefix <- if_else(as.character(Sys.info()["sysname"]) == "Windows", "//INHS-Bison.ad.uillinois.edu", "/Volumes")
-network_path <- paste0(network_prefix, "/ResearchData/Groups/Kaskaskia_CREP")
-analysis_path <- paste0(network_prefix,"/ResearchData/Groups/Kaskaskia_CREP/Analysis/Fish/PhaseIII_Analysis")
+network_path <- paste0(network_prefix, "/ResearchData/Groups/StreamEcologyLab/CREP")
+analysis_path <- paste0(network_prefix,"/ResearchData/Groups/StreamEcologyLab/CREP/Analysis/Fish/PhaseIII_Analysis")
 plot_folder <- paste0(analysis_path,"/Plots")
 
 ### Open fish-data-prep and load in the data columns from the data base including

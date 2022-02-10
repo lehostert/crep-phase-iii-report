@@ -1,8 +1,8 @@
 library(tidyverse)
 
 network_prefix <- if_else(as.character(Sys.info()["sysname"]) == "Windows", "//INHS-Bison.ad.uillinois.edu", "/Volumes")
-network_path <- paste0(network_prefix, "/ResearchData/Groups/Kaskaskia_CREP")
-analysis_path <- paste0(network_prefix,"/ResearchData/Groups/Kaskaskia_CREP/Analysis/Fish/PhaseIII_Analysis")
+network_path <- paste0(network_prefix, "/ResearchData/Groups/StreamEcologyLab/CREP")
+analysis_path <- paste0(network_prefix,"/ResearchData/Groups/StreamEcologyLab/CREP/Analysis/Fish/PhaseIII_Analysis")
 
 fish_data <- read_csv(file = paste0(analysis_path, "/Fish_Abundance_Data_CREP_2013-2020_P3FR.csv"))
   
@@ -39,7 +39,7 @@ add_traits_to_data <- function(species_count_data) {
   #' MIN and MAXTEMP values were added for WHS and CAP as -8.9 and 28.9 for the 30 year ave min (Jan) and ave max (July) from NOAA records for Champaign, IL
   
   
-  il_fish_traits <- read.csv(paste0(network_prefix,"/ResearchData/Groups/Kaskaskia_CREP/Analysis/Fish/Data/Illinois_fish_traits_complete.csv"), na = "", stringsAsFactors = F)
+  il_fish_traits <- read.csv(paste0(network_prefix,"/ResearchData/Groups/StreamEcologyLab/CREP/Analysis/Fish/Data/Illinois_fish_traits_complete.csv"), na = "", stringsAsFactors = F)
   il_fish_traits$Native_Intolerant <- ifelse(il_fish_traits$Nonnative == '0' & il_fish_traits$Tolerance_Class == 'INTOLERANT', 1, 0)
   
   fish_table <- species_count_data %>% 

@@ -379,7 +379,8 @@ summary_sites_by_year_type <- df_habitat %>%
     ) %>% 
     mutate(SE.metric = SD.metric / sqrt(N.metric),
            Lower.ci = Mean.metric - qt(1 - (0.05 / 2), N.metric - 1) * SE.metric,
-           Upper.ci = Mean.metric + qt(1 - (0.05 / 2), N.metric - 1) * SE.metric)
+           Upper.ci = Mean.metric + qt(1 - (0.05 / 2), N.metric - 1) * SE.metric) %>% 
+  ungroup()
 
 ### LD Sites with Random Sites - Barplots with 95% CI ###
 for (met in metric_list) {
@@ -392,7 +393,8 @@ for (met in metric_list) {
     geom_errorbar(aes(ymin=Lower.ci, ymax=Upper.ci), position = position_dodge(0.9), width=0.25, alpha=0.9, size=1.00) +
     geom_pointrange(aes(ymin=Lower.ci, ymax=Upper.ci), position = position_dodge(0.9), alpha=0.9, size=0.6) +
     labs(y = paste0("Mean ", str_replace_all(met, "_", " ")), 
-         title = paste0("Mean ", str_replace_all(met, "_", " ")," of Less-Disturbed & Random Sites by Year"), 
+         title = paste0("Mean ", str_replace_all(met, "_", " ")," of Less-Disturbed & Random Sites by Year"),
+         fill= "Site Type", 
          caption = "Metric mean with 95% Confidence Intervals")
   
   ggsave(paste0("LD_Random_",str_to_lower(met),"_barplot_by_year.pdf"), 
@@ -400,6 +402,16 @@ for (met in metric_list) {
          height = 8, 
          path = paste0(plot_folder, "/LD"), units = "in")
 }
+
+
+sum_ld_year <- summary_sites_by_year_type %>%
+  filter(Site_Type == "less_disturbed",
+         Year == 2018|Year == 2019|Year == 2020 ) %>% 
+  mutate(summ = paste0(formatC(Mean.metric, digits = 2, format = "f"), " (min ",Min.metric, ", max ",Max.metric, ")")) %>% 
+  select(Metric, Year, summ) %>% 
+  pivot_wider(names_from = Year, values_from = summ)
+
+writexl::write_xlsx(sum_ld_year, path = paste0(plot_folder,"/Habitat_Table_LD_Summary.xlsx"))
 
 #### Summary ISWS Sites Only by Phase ####
 

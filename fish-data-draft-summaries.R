@@ -38,8 +38,6 @@ df_fish <- gap %>%
 
 
 
-
-
 #### Summary by Site Type per Phase ####
 summary_sites_by_phase <- df %>%
   group_by(Phase, Site_Type) %>% 
@@ -54,7 +52,7 @@ writexl::write_xlsx(summary_sites_by_phase, path = paste0(plot_folder,"/Fish_Tab
 ## idea of the mean for each parameter.
 
 summary_sites_by_metric <- df %>%
-  pivot_longer(cols = IBI:INTOLPTAX, names_to = "Metric", values_to = "Value", values_drop_na = F) %>% 
+  pivot_longer(cols = IBI:COSUBPIND, names_to = "Metric", values_to = "Value", values_drop_na = F) %>% 
   group_by(Site_Type, Metric) %>% 
   summarize(Total_Sites = n_distinct(Site_ID),
             Mean.metric = mean(Value, na.rm = T),

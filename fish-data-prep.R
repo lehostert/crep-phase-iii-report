@@ -89,4 +89,4 @@ df <- df %>%
                          if_else(Year == 2016|Year == 2017, 'Phase II', 'Phase III'))) %>% 
   select(1:5,118,6:117)
 
-write_csv(df, path = paste0(analysis_path, "/Data/Habitat_Metrics_CREP_2013-2020_P3FR_All.csv"))
+write_csv(df, path = paste0(analysis_path, "/Data/Fish_Metrics_CREP_2013-2020_P3FR_All.csv"))

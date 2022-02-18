@@ -57,3 +57,36 @@ write.csv(site_metric_tibble, file = paste0(analysis_path, "/Fish_Metrics_CREP_2
 ### Something is wrong with the Site_ID names for this files but the values are the same as earlier. 
 
 
+##### Clean it up ##### 
+network_prefix <- if_else(as.character(Sys.info()["sysname"]) == "Windows", "//INHS-Bison.ad.uillinois.edu", "/Volumes")
+network_path <- paste0(network_prefix, "/ResearchData/Groups/StreamEcologyLab/CREP")
+analysis_path <- paste0(network_prefix,"/ResearchData/Groups/StreamEcologyLab/CREP/Analysis/Fish/PhaseIII_Analysis")
+
+
+metrics <- read_csv(file = paste0(analysis_path, "/Fish_Metrics_CREP_2013-2020.csv"))
+id <- read_csv(file = paste0(analysis_path, "/id_table_CREP_2013-2020_P3FR.csv"))
+ibi <- read_csv(file = paste0(network_path, "/Data/Data_IN/IBI/IBI_Output_2013_2020.csv"))
+
+### Simplify IBI ###
+ibi <- ibi %>% 
+  select(PU_Gap_Code, Reach_Name, Event_Date = `Sample Date`, IBI)
+
+
+#### Now you can compare the different types ####
+
+df <- id %>% 
+  left_join(metrics) %>% 
+  left_join(ibi)
+
+df$Year <- as.factor(lubridate::year(df$Event_Date))
+df$Site_Type <- as.factor(df$Site_Type)
+
+df <- df %>% 
+  select(1:4,117,5,116,6:115)
+
+df <- df %>% 
+  mutate(Phase = if_else(Year == 2013|Year == 2014|Year == 2015, 'Phase I', 
+                         if_else(Year == 2016|Year == 2017, 'Phase II', 'Phase III'))) %>% 
+  select(1:5,118,6:117)
+
+write_csv(df, path = paste0(analysis_path, "/Data/Fish_Metrics_CREP_2013-2020_P3FR_All.csv"))

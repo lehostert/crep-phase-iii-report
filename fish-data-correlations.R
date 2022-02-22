@@ -2,8 +2,14 @@ library(tidyverse)
 
 network_prefix <- if_else(as.character(Sys.info()["sysname"]) == "Windows", "//INHS-Bison.ad.uillinois.edu", "/Volumes")
 network_path <- paste0(network_prefix, "/ResearchData/Groups/StreamEcologyLab/CREP")
+analysis_path <- paste0(network_prefix,"/ResearchData/Groups/StreamEcologyLab/CREP/Analysis/Fish/PhaseIII_Analysis")
+plot_folder<- paste0(analysis_path, "/Plots_Reduced")
 
 set.seed(2022)
+
+
+## Get df_fish from fish-data-draft-summaries.R
+df_fish <- read_csv(file = paste0(analysis_path, "/Data/Fish_Metrics_CREP_2013-2020_P3FR_Selected.csv"))
 
 #### Random ####
 df_fish_random <- df_fish %>% 

@@ -36,7 +36,7 @@ df_fish <- gap %>%
          Percent_Tolerant_Taxa = TOLRPTAX) %>% 
   replace_na(list(Channel_Order = 1, Link = 1))
 
-
+write_csv(df_fish, path = paste0(analysis_path,"/Data/Fish_Metrics_CREP_2013-2020_P3FR_Selected.csv"))
 
 #### Summary Table of Number of Sites per Site Type per Phase ####
 summary_sites_by_phase <- df %>%
@@ -135,6 +135,43 @@ for (met in metric_list) {
          path = paste0(plot_folder, "/Random_ByPhase"), units = "in")
 }
 
+
+### Random Sites by Year- Barplots with 95% CI ###
+summary_random_sites_by_year_1320 <- df_fish %>%
+  filter(Site_Type == "random") %>% 
+  pivot_longer(cols = Channel_Order:Percent_Tolerant_Taxa, names_to = "Metric", values_to = "Value", values_drop_na = F) %>% 
+  group_by(Year, Metric) %>% 
+  summarize(Total_Sites = n_distinct(Site_ID),
+            Mean.metric = mean(Value, na.rm = T),
+            Min.metric = min(Value, na.rm = T),
+            Max.metric = max(Value, na.rm = T),
+            N.metric = sum(!is.na(Value)),
+            N.NA = sum(is.na(Value)),
+            SD.metric =sd(Value, na.rm = TRUE)
+  ) %>% 
+  mutate(SE.metric = SD.metric / sqrt(N.metric),
+         Lower.ci = Mean.metric - qt(1 - (0.05 / 2), N.metric - 1) * SE.metric,
+         Upper.ci = Mean.metric + qt(1 - (0.05 / 2), N.metric - 1) * SE.metric)    
+
+metric_list <- unique(summary_random_sites_by_year_1320$Metric) 
+
+for (met in metric_list) {
+  summary_random_sites_by_year_1320 %>%
+    filter(Metric == met) %>% 
+    ggplot() +
+    geom_bar( aes(x=Year, y= Mean.metric), stat="identity", alpha=0.7)+
+    geom_errorbar( aes(x=Year, ymin=Lower.ci, ymax=Upper.ci), width=0.25, alpha=0.9, size=1.25) +
+    geom_pointrange( aes(x=Year, y=Mean.metric, ymin=Lower.ci, ymax=Upper.ci), alpha=0.9, size=1.25) +
+    scale_color_viridis()+
+    labs(y = paste0("Mean ", str_replace_all(met, "_", " ")), 
+         title = paste0("Mean ", str_replace_all(met, "_", " ")," of Random Sites by Year"), 
+         caption = "Metric mean with 95% Confidence Intervals")
+  
+  ggsave(paste0(str_to_lower(met),"_1320_barplot_CI_random_by_year.pdf"), 
+         width = 8, 
+         height = 8, 
+         path = paste0(plot_folder, "/Random_ByYear"), units = "in")
+}
 
 ### Random Sites - Boxplots ###
 for (met in metric_list) {
@@ -331,6 +368,60 @@ for (met in metric_list) {
          height = 8, 
          path = paste0(plot_folder, "/SensitiveSpecies_ByPhase"), units = "in")
 }
+### Sensitive Species by Year 
+
+summary_sensitive_sites_by_year_1320 <- df_fish %>%
+  filter(Site_Type == "copper") %>% 
+  pivot_longer(cols = IBI:Percent_Tolerant_Taxa, names_to = "Metric", values_to = "Value", values_drop_na = F) %>% 
+  group_by(Year, Metric) %>% 
+  summarize(Total_Sites = n_distinct(Site_ID),
+            Mean.metric = mean(Value, na.rm = T),
+            Min.metric = min(Value, na.rm = T),
+            Max.metric = max(Value, na.rm = T),
+            N.metric = sum(!is.na(Value)),
+            N.NA = sum(is.na(Value)),
+            SD.metric =sd(Value, na.rm = TRUE)
+  ) %>% 
+  mutate(SE.metric = SD.metric / sqrt(N.metric),
+         Lower.ci = Mean.metric - qt(1 - (0.05 / 2), N.metric - 1) * SE.metric,
+         Upper.ci = Mean.metric + qt(1 - (0.05 / 2), N.metric - 1) * SE.metric) %>% 
+  ungroup()
+
+## Hach parameters (Ammonia, Nitrate, Orthophosphate and Turbidity) and Visual water Clarity not available for sensitive species sites
+
+cut_list <- summary_sensitive_sites_by_year_1320 %>% 
+  filter(is.na(Mean.metric)) %>%
+  select(Metric) %>% 
+  unique()
+
+cut_list <- cut_list$Metric
+
+metric_list <- summary_sensitive_sites_by_year_1320 %>% 
+  select(Metric) %>% 
+  filter(!Metric %in% cut_list) %>% 
+  unique()
+
+metric_list <- unique(metric_list$Metric)
+
+### Sensitive Sites - Barplots with 95% CI ###
+for (met in metric_list) {
+  summary_sensitive_sites_by_year_1320 %>%
+    filter(Metric == met) %>% 
+    ggplot() +
+    geom_bar( aes(x=Year, y= Mean.metric), stat="identity", alpha=0.7)+
+    geom_errorbar( aes(x=Year, ymin=Lower.ci, ymax=Upper.ci), width=0.25, alpha=0.9, size=1.25) +
+    geom_pointrange( aes(x=Year, y=Mean.metric, ymin=Lower.ci, ymax=Upper.ci), alpha=0.9, size=1.25) +
+    scale_color_viridis()+
+    labs(y = paste0("Mean ", str_replace_all(met, "_", " ")), 
+         title = paste0("Mean ", str_replace_all(met, "_", " ")," of Sensitive Species Sites by Year"), 
+         caption = "Metric mean with 95% Confidence Intervals")
+  
+  ggsave(paste0(str_to_lower(met),"_1320_barplot_CI_sensitive_by_year.pdf"), 
+         width = 8, 
+         height = 8, 
+         path = paste0(plot_folder, "/SensitiveSpecies_ByYear"), units = "in")
+}
+
 
 
 ### Sensitive Sites - Boxplots ###
@@ -539,7 +630,7 @@ metric_list <- summary_isws_sites_by_phase_1320 %>%
 
 metric_list <- unique(metric_list$Metric)
 
-### ISWS Sites - Barplots with 95% CI ###
+### ISWS Sites By Phase - Barplots with 95% CI ###
 for (met in metric_list) {
   summary_isws_sites_by_phase_1320 %>%
     filter(Metric == met) %>% 
@@ -556,6 +647,58 @@ for (met in metric_list) {
          width = 8, 
          height = 8, 
          path = paste0(plot_folder, "/ISWS"), units = "in")
+}
+
+### ISWS Sites By Year- Barplots with 95% CI ###
+summary_isws_sites_by_year_1320 <- df_fish %>%
+  filter(Site_Type == "ISWS") %>% 
+  pivot_longer(cols = IBI:Percent_Tolerant_Taxa, names_to = "Metric", values_to = "Value", values_drop_na = F) %>% 
+  group_by(Year, Metric) %>% 
+  summarize(Total_Sites = n_distinct(Site_ID),
+            Mean.metric = mean(Value, na.rm = T),
+            Min.metric = min(Value, na.rm = T),
+            Max.metric = max(Value, na.rm = T),
+            N.metric = sum(!is.na(Value)),
+            N.NA = sum(is.na(Value)),
+            SD.metric =sd(Value, na.rm = TRUE)
+  ) %>% 
+  mutate(SE.metric = SD.metric / sqrt(N.metric),
+         Lower.ci = Mean.metric - qt(1 - (0.05 / 2), N.metric - 1) * SE.metric,
+         Upper.ci = Mean.metric + qt(1 - (0.05 / 2), N.metric - 1) * SE.metric) %>% 
+  ungroup()
+
+## Hach parameters (Ammonia, Nitrate, Orthophosphate and Turbidity) and Visual water Clarity not available for sensitive species sites
+
+cut_list <- summary_isws_sites_by_year_1320 %>% 
+  filter(is.na(Mean.metric)) %>%
+  select(Metric) %>% 
+  unique()
+
+cut_list <- cut_list$Metric
+
+metric_list <- summary_isws_sites_by_year_1320 %>% 
+  select(Metric) %>% 
+  filter(!Metric %in% cut_list) %>% 
+  unique()
+
+metric_list <- unique(metric_list$Metric)
+
+for (met in metric_list) {
+  summary_isws_sites_by_year_1320 %>%
+    filter(Metric == met) %>% 
+    ggplot() +
+    geom_bar( aes(x=Year, y= Mean.metric), stat="identity", alpha=0.7)+
+    geom_errorbar( aes(x=Year, ymin=Lower.ci, ymax=Upper.ci), width=0.25, alpha=0.9, size=1.25) +
+    geom_pointrange( aes(x=Year, y=Mean.metric, ymin=Lower.ci, ymax=Upper.ci), alpha=0.9, size=1.25) +
+    scale_color_viridis()+
+    labs(y = paste0("Mean ", str_replace_all(met, "_", " ")), 
+         title = paste0("Mean ", str_replace_all(met, "_", " ")," of ISWS Sites by Year"), 
+         caption = "Metric mean with 95% Confidence Intervals")
+  
+  ggsave(paste0(str_to_lower(met),"_1320_barplot_CI_isws_by_year.pdf"), 
+         width = 8, 
+         height = 8, 
+         path = paste0(plot_folder, "/ISWS_ByYear"), units = "in")
 }
 
 

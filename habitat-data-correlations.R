@@ -9,13 +9,60 @@ set.seed(2022)
 
 df_habitat <- read_csv(file = paste0(analysis_path, "/Data/Habitat_Metrics_CREP_2013-2020_P3FR_basedOnIHI.csv"))
 df_habitat$Site_Type <- as.factor(df_habitat$Site_Type)
+
+#### Create Correlation Functions ####
+
+corl <- function(met, fact, type){
+  x <-df_habitat %>%  filter(Site_Type == type) %>% pull(met)
+  y <-df_habitat %>%  filter(Site_Type == type) %>% pull(fact) 
+  cor.test(x,y, method = "pearson") %>% broom::tidy() %>% mutate(Metric = str_replace_all(met, "_", " "))
+}
+
+#### Get Metric List ####
+summary_random_sites_by_phase_1320 <- df_habitat %>%
+  filter(Site_Type == "random") %>% 
+  pivot_longer(cols = QHEI_Score:Turbidity, names_to = "Metric", values_to = "Value", values_drop_na = F) %>% 
+  group_by(Phase, Metric) %>% 
+  summarize(Total_Sites = n_distinct(Site_ID),
+            Mean.metric = mean(Value, na.rm = T),
+            Min.metric = min(Value, na.rm = T),
+            Max.metric = max(Value, na.rm = T),
+            N.metric = sum(!is.na(Value)),
+            N.NA = sum(is.na(Value)),
+            SD.metric =sd(Value, na.rm = TRUE)
+  ) %>% 
+  mutate(SE.metric = SD.metric / sqrt(N.metric),
+         Lower.ci = Mean.metric - qt(1 - (0.05 / 2), N.metric - 1) * SE.metric,
+         Upper.ci = Mean.metric + qt(1 - (0.05 / 2), N.metric - 1) * SE.metric)    
+
+metric_list <- unique(summary_random_sites_by_phase_1320$Metric) 
   
 #### Random ####
+res <- NULL
+i <- 0
+for (met in metric_list) {
+  i <- i+1
+  res[[i]] <- corl(met, "Year", "random")
+  print(i)
+  print(met)
+}
+
+res_random<- do.call(rbind, res)
+
 df_habitat_random <- df_habitat %>% 
   filter(Site_Type == "random")
 
-res_random <- cor.test(df_habitat_random$IBI, df_habitat_random$Year, method = "pearson") %>% broom::tidy() %>% mutate(Metric = "IBI")
-res_random[2,] <- cor.test(df_habitat_random$Diversity, df_habitat_random$Year, method = "pearson") %>% broom::tidy() %>% mutate(Metric = "Diversity")
+res_random <- cor.test(df_habitat_random$Ammonia, df_habitat_random$Year, method = "pearson") %>% broom::tidy() %>% mutate(Metric = "Ammonia")
+res_random <- cor.test(df_habitat_random$Conductivity, df_habitat_random$Year, method = "pearson") %>% broom::tidy() %>% mutate(Metric = "Conductivity")
+res_random <- cor.test(df_habitat_random$DO, df_habitat_random$Year, method = "pearson") %>% broom::tidy() %>% mutate(Metric = "DO")
+res_random <- cor.test(df_habitat_random$DO_Saturation, df_habitat_random$Year, method = "pearson") %>% broom::tidy() %>% mutate(Metric = "DO_Saturation")
+res_random <- cor.test(df_habitat_random$IHI_Score, df_habitat_random$Year, method = "pearson") %>% broom::tidy() %>% mutate(Metric = "IHI Score")
+res_random <- cor.test(df_habitat_random$Mean_Depth, df_habitat_random$Year, method = "pearson") %>% broom::tidy() %>% mutate(Metric = "Mean_Depth")
+res_random <- cor.test(df_habitat_random$Mean_Width, df_habitat_random$Year, method = "pearson") %>% broom::tidy() %>% mutate(Metric = "Mean_Width")
+res_random <- cor.test(df_habitat_random$Nitrate, df_habitat_random$Year, method = "pearson") %>% broom::tidy() %>% mutate(Metric = "Nitrate")
+res_random <- cor.test(df_habitat_random$Nitrate, df_habitat_random$Year, method = "pearson") %>% broom::tidy() %>% mutate(Metric = "Nitrate")
+
+res_random[2,] <- cor.test(df_habitat_random$QHEI_Score, df_habitat_random$Year, method = "pearson") %>% broom::tidy() %>% mutate(Metric = "QHEI Score")
 res_random[3,] <- cor.test(df_habitat_random$Individuals, df_habitat_random$Year, method = "pearson") %>% broom::tidy() %>% mutate(Metric = "Individuals")
 res_random[4,] <- cor.test(df_habitat_random$Percent_Catostomidae, df_habitat_random$Year, method = "pearson") %>% broom::tidy() %>% mutate(Metric = "Percent_Catostomidae")
 res_random[5,] <- cor.test(df_habitat_random$Percent_Intolerant_Taxa, df_habitat_random$Year, method = "pearson") %>% broom::tidy() %>% mutate(Metric = "Percent_Intolerant_Taxa")
@@ -36,7 +83,7 @@ df_habitat_paired <- df_habitat %>%
   ungroup() %>% 
   filter(Site_Type == "paired") %>%
   left_join(pair_list) %>% 
-  pivot_longer(cols = IBI:Percent_Tolerant_Taxa, names_to = "Metric", values_to = "Value", values_drop_na = F) %>%
+  pivot_longer(cols = IHI_Score:Percent_Tolerant_Taxa, names_to = "Metric", values_to = "Value", values_drop_na = F) %>%
   select(-c(Reach_Name, Site_ID, Phase, Site_Type, Event_Date, Channel_Order, Link)) %>% 
   group_by(PU_Gap_Code) %>% 
   pivot_wider(names_from = Year, values_from= Value)
@@ -48,7 +95,7 @@ df_habitat_paired_16 <- df_habitat %>%
   left_join(pair_list) %>% 
   filter(Pair_Number != 2)
 
-res_pair16 <- t.test(IBI ~ CRP_Class, data = df_habitat_paired_16, paired = TRUE) %>% broom::tidy() %>% mutate(Metric = "IBI")
+res_pair16 <- t.test(IHI_Score ~ CRP_Class, data = df_habitat_paired_16, paired = TRUE) %>% broom::tidy() %>% mutate(Metric = "IHI Score")
 res_pair16[2,] <- t.test(Diversity ~ CRP_Class, data = df_habitat_paired_16, paired = TRUE) %>% broom::tidy() %>% mutate(Metric = "Diversity")
 res_pair16[3,] <- t.test(Individuals ~ CRP_Class, data = df_habitat_paired_16, paired = TRUE) %>% broom::tidy() %>% mutate(Metric = "Individuals")
 res_pair16[4,] <- t.test(Percent_Catostomidae ~ CRP_Class, data = df_habitat_paired_16, paired = TRUE) %>% broom::tidy() %>% mutate(Metric = "Percent_Catostomidae")
@@ -66,7 +113,7 @@ df_habitat_paired_17 <- df_habitat %>%
          Year == 2017) %>%
   left_join(pair_list)
 
-res_pair17 <- t.test(IBI ~ CRP_Class, data = df_habitat_paired_17, paired = TRUE) %>% broom::tidy() %>% mutate(Metric = "IBI")
+res_pair17 <- t.test(IHI_Score ~ CRP_Class, data = df_habitat_paired_17, paired = TRUE) %>% broom::tidy() %>% mutate(Metric = "IHI Score")
 res_pair17[2,] <- t.test(Diversity ~ CRP_Class, data = df_habitat_paired_17, paired = TRUE) %>% broom::tidy() %>% mutate(Metric = "Diversity")
 res_pair17[3,] <- t.test(Individuals ~ CRP_Class, data = df_habitat_paired_17, paired = TRUE) %>% broom::tidy() %>% mutate(Metric = "Individuals")
 res_pair17[4,] <- t.test(Percent_Catostomidae ~ CRP_Class, data = df_habitat_paired_17, paired = TRUE) %>% broom::tidy() %>% mutate(Metric = "Percent_Catostomidae")
@@ -86,7 +133,7 @@ df_habitat_paired_18 <- df_habitat %>%
   left_join(pair_list) %>% 
   filter(Pair_Number != 4)
 
-res_pair18 <- t.test(IBI ~ CRP_Class, data = df_habitat_paired_18, paired = TRUE) %>% broom::tidy() %>% mutate(Metric = "IBI")
+res_pair18 <- t.test(IHI_Score ~ CRP_Class, data = df_habitat_paired_18, paired = TRUE) %>% broom::tidy() %>% mutate(Metric = "IHI Score")
 res_pair18[2,] <- t.test(Diversity ~ CRP_Class, data = df_habitat_paired_18, paired = TRUE) %>% broom::tidy() %>% mutate(Metric = "Diversity")
 res_pair18[3,] <- t.test(Individuals ~ CRP_Class, data = df_habitat_paired_18, paired = TRUE) %>% broom::tidy() %>% mutate(Metric = "Individuals")
 res_pair18[4,] <- t.test(Percent_Catostomidae ~ CRP_Class, data = df_habitat_paired_18, paired = TRUE) %>% broom::tidy() %>% mutate(Metric = "Percent_Catostomidae")
@@ -135,14 +182,14 @@ df_habitat_ss <- df_habitat %>%
   ungroup() %>% 
   filter(Site_Type == "copper",
          Year == 2016|Year == 2019) %>%
-  pivot_longer(cols = IBI:Percent_Tolerant_Taxa, names_to = "Metric", values_to = "Value", values_drop_na = F) %>%
+  pivot_longer(cols = IHI_Score:Percent_Tolerant_Taxa, names_to = "Metric", values_to = "Value", values_drop_na = F) %>%
   select(-c(PU_Gap_Code, Site_ID, Phase, Site_Type, Event_Date, Channel_Order, Link)) %>% 
   group_by(Reach_Name) %>% 
   pivot_wider(names_from = Year, values_from= Value) %>% 
   rename(Year1 ="2016", Year3 = "2019")
 
-df_habitat_ss_metric <- df_habitat_ss %>% ungroup() %>% filter(Metric == "IBI")
-res_ss <- t.test(df_habitat_ss_metric$Year1, df_habitat_ss_metric$Year3, paired = TRUE) %>% broom::tidy() %>% mutate(Metric = "IBI")
+df_habitat_ss_metric <- df_habitat_ss %>% ungroup() %>% filter(Metric == "IHI Score")
+res_ss <- t.test(df_habitat_ss_metric$Year1, df_habitat_ss_metric$Year3, paired = TRUE) %>% broom::tidy() %>% mutate(Metric = "IHI Score")
 df_habitat_ss_metric <- df_habitat_ss %>% ungroup() %>% filter(Metric == "Diversity")
 res_ss[2,] <- t.test(df_habitat_ss_metric$Year1, df_habitat_ss_metric$Year3, paired = TRUE) %>% broom::tidy() %>% mutate(Metric = "Diversity")
 df_habitat_ss_metric <- df_habitat_ss %>% ungroup() %>% filter(Metric == "Individuals")
@@ -159,7 +206,7 @@ res_ss[7,] <- t.test(df_habitat_ss_metric$Year1, df_habitat_ss_metric$Year3, pai
 res_ss <- res_ss %>% 
   mutate(summary = paste0("t(",parameter, ")= ",round(statistic,digits = 2),", p=", round(p.value,digits = 2)))
 
-remove(df_habitat_ss_metric, df_habitat_ss_ibi)
+remove(df_habitat_ss_metric)
 writexl::write_xlsx(res_ss, path = paste0(plot_folder,"/fish_cor_sensitive.xlsx"))
 
 ## Kruskal-Wallis Test whether or not there were differences between years
@@ -172,7 +219,7 @@ df_habitat_ss_KW <- df_habitat %>%
 df_habitat_ss_KW$Year <- ordered(df_habitat_ss_KW$Year ,
                               levels = c("2016", "2017", "2019"))
 
-res_ss_KW <- kruskal.test(IBI ~ Year, data = df_habitat_ss_KW) %>% broom::tidy() %>% mutate(Metric = "IBI")
+res_ss_KW <- kruskal.test(IHI_Score ~ Year, data = df_habitat_ss_KW) %>% broom::tidy() %>% mutate(Metric = "IHI Score")
 res_ss_KW[2,] <- kruskal.test(Diversity ~ Year, data = df_habitat_ss_KW) %>% broom::tidy() %>% mutate(Metric = "Diversity")
 res_ss_KW[3,] <- kruskal.test(Individuals ~ Year, data = df_habitat_ss_KW) %>% broom::tidy() %>% mutate(Metric = "Individuals")
 res_ss_KW[4,] <- kruskal.test(Percent_Catostomidae ~ Year, data = df_habitat_ss_KW) %>% broom::tidy() %>% mutate(Metric = "Percent_Catostomidae")
@@ -180,7 +227,7 @@ res_ss_KW[5,] <- kruskal.test(Percent_Intolerant_Taxa ~ Year, data = df_habitat_
 res_ss_KW[6,] <- kruskal.test(Percent_Moderate_Tolerance_Taxa ~ Year, data = df_habitat_ss_KW) %>% broom::tidy() %>% mutate(Metric = "Percent_Moderate_Tolerance_Taxa")
 res_ss_KW[7,] <- kruskal.test(Percent_Tolerant_Taxa ~ Year, data = df_habitat_ss_KW) %>% broom::tidy() %>% mutate(Metric = "Percent_Tolerant_Taxa")
 
-res_ss_WX <- pairwise.wilcox.test(df_habitat_ss_KW$IBI, df_habitat_ss_KW$Year, p.adjust.method = "BH") %>% broom::tidy() %>% mutate(Metric = "IBI")
+res_ss_WX <- pairwise.wilcox.test(df_habitat_ss_KW$IHI_Score, df_habitat_ss_KW$Year, p.adjust.method = "BH") %>% broom::tidy() %>% mutate(Metric = "IHI Score")
 res_ss_WX2 <- pairwise.wilcox.test(df_habitat_ss_KW$Diversity , df_habitat_ss_KW$Year, p.adjust.method = "BH") %>% broom::tidy() %>% mutate(Metric = "Diversity")
 res_ss_WX3 <- pairwise.wilcox.test(df_habitat_ss_KW$Individuals, df_habitat_ss_KW$Year, p.adjust.method = "BH") %>% broom::tidy() %>% mutate(Metric = "Individuals")
 res_ss_WX4 <- pairwise.wilcox.test(df_habitat_ss_KW$Percent_Catostomidae, df_habitat_ss_KW$Year, p.adjust.method = "BH") %>% broom::tidy() %>% mutate(Metric = "Percent_Catostomidae")
@@ -199,7 +246,7 @@ writexl::write_xlsx(res_ss_WX, path = paste0(plot_folder,"/fish_wilcox_sensitive
 df_habitat_ld <- df_habitat %>% 
   filter(Site_Type == "less_disturbed")
 
-res_ld <- cor.test(df_habitat_ld$IBI, df_habitat_ld$Year, method = "pearson") %>% broom::tidy() %>% mutate(Metric = "IBI")
+res_ld <- cor.test(df_habitat_ld$IHI_Score, df_habitat_ld$Year, method = "pearson") %>% broom::tidy() %>% mutate(Metric = "IHI Score")
 res_ld[2,] <- cor.test(df_habitat_ld$Diversity, df_habitat_ld$Year, method = "pearson") %>% broom::tidy() %>% mutate(Metric = "Diversity")
 res_ld[3,] <- cor.test(df_habitat_ld$Individuals, df_habitat_ld$Year, method = "pearson") %>% broom::tidy() %>% mutate(Metric = "Individuals")
 res_ld[4,] <- cor.test(df_habitat_ld$Percent_Catostomidae, df_habitat_ld$Year, method = "pearson") %>% broom::tidy() %>% mutate(Metric = "Percent_Catostomidae")
@@ -228,7 +275,7 @@ res_ldr
 df_habitat_isws <- df_habitat %>% 
   filter(Site_Type == "ISWS")
 
-res_isws <- cor.test(df_habitat_isws$IBI, df_habitat_isws$Year, method = "pearson") %>% broom::tidy() %>% mutate(Metric = "IBI")
+res_isws <- cor.test(df_habitat_isws$IHI_Score, df_habitat_isws$Year, method = "pearson") %>% broom::tidy() %>% mutate(Metric = "IHI Score")
 res_isws[2,] <- cor.test(df_habitat_isws$Diversity, df_habitat_isws$Year, method = "pearson") %>% broom::tidy() %>% mutate(Metric = "Diversity")
 res_isws[3,] <- cor.test(df_habitat_isws$Individuals, df_habitat_isws$Year, method = "pearson") %>% broom::tidy() %>% mutate(Metric = "Individuals")
 res_isws[4,] <- cor.test(df_habitat_isws$Percent_Catostomidae, df_habitat_isws$Year, method = "pearson") %>% broom::tidy() %>% mutate(Metric = "Percent_Catostomidae")

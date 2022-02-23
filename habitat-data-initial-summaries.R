@@ -29,6 +29,15 @@ summary_sites_by_phase <- df_habitat %>%
 
 # writexl::write_xlsx(summary_sites_by_phase, path = paste0(plot_folder,"/Habitat_Table1.xlsx"))
 
+#### Summary by Site Type per Year####
+summary_sites_by_yearphase <- df_habitat %>%
+  group_by(Year,Site_Type) %>% 
+  summarize(Total_Sites = n_distinct(Site_ID)) %>%
+  ungroup() %>% 
+  pivot_wider(names_from = Year, values_from = Total_Sites)
+
+writexl::write_xlsx(summary_sites_by_yearphase, path = paste0(plot_folder,"/Habitat_Table_Year.xlsx"))
+
 
 #### Summary of all 285 observation by Site Type & Metric not grouping by Phase of project. This just gives an overall
 ## idea of the mean for each parameter.
@@ -117,6 +126,44 @@ for (met in metric_list) {
          height = 8, 
          path = paste0(plot_folder, "/Random_ByPhase"), units = "in")
 }
+
+### Random Site By Year - Barplots with 95% CI
+summary_random_sites_by_year_1320 <- df_habitat %>%
+  filter(Site_Type == "random") %>% 
+  pivot_longer(cols = QHEI_Score:Turbidity, names_to = "Metric", values_to = "Value", values_drop_na = F) %>% 
+  group_by(Year, Metric) %>% 
+  summarize(Total_Sites = n_distinct(Site_ID),
+            Mean.metric = mean(Value, na.rm = T),
+            Min.metric = min(Value, na.rm = T),
+            Max.metric = max(Value, na.rm = T),
+            N.metric = sum(!is.na(Value)),
+            N.NA = sum(is.na(Value)),
+            SD.metric =sd(Value, na.rm = TRUE)
+  ) %>% 
+  mutate(SE.metric = SD.metric / sqrt(N.metric),
+         Lower.ci = Mean.metric - qt(1 - (0.05 / 2), N.metric - 1) * SE.metric,
+         Upper.ci = Mean.metric + qt(1 - (0.05 / 2), N.metric - 1) * SE.metric)    
+
+metric_list <- unique(summary_random_sites_by_year_1320$Metric) 
+
+for (met in metric_list) {
+  summary_random_sites_by_year_1320 %>%
+    filter(Metric == met) %>% 
+    ggplot() +
+    geom_bar( aes(x=Year, y= Mean.metric), stat="identity", alpha=0.7)+
+    geom_errorbar( aes(x=Year, ymin=Lower.ci, ymax=Upper.ci), width=0.25, alpha=0.9, size=1.25) +
+    geom_pointrange( aes(x=Year, y=Mean.metric, ymin=Lower.ci, ymax=Upper.ci), alpha=0.9, size=1.25) +
+    scale_color_viridis()+
+    labs(y = paste0("Mean ", str_replace_all(met, "_", " ")), 
+         title = paste0("Mean ", str_replace_all(met, "_", " ")," of Random Sites by Year"), 
+         caption = "Metric mean with 95% Confidence Intervals")
+  
+  ggsave(paste0(str_to_lower(met),"_1320_barplot_CI_random_by_year.pdf"), 
+         width = 8, 
+         height = 8, 
+         path = paste0(plot_folder, "/Random_ByYear"), units = "in")
+}
+
 
 
 ### Random Sites - Boxplots ###

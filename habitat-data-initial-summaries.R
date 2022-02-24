@@ -73,16 +73,64 @@ summary_sites_by_phase_type_1320 <- df_habitat %>%
   ) %>% 
   mutate(SE.metric = SD.metric / sqrt(N.metric),
          Lower.ci = Mean.metric - qt(1 - (0.05 / 2), N.metric - 1) * SE.metric,
-         Upper.ci = Mean.metric + qt(1 - (0.05 / 2), N.metric - 1) * SE.metric)
+         Upper.ci = Mean.metric + qt(1 - (0.05 / 2), N.metric - 1) * SE.metric,
+         Margin.error = qt(1 - (0.05 / 2), N.metric - 1) * SE.metric)
 
 sum_phase_type <- summary_sites_by_phase_type_1320 %>% 
-  mutate(summ = paste0(formatC(Mean.metric, digits = 2, format = "f"), " (min ",Min.metric, ", max ",Max.metric, ")")) %>% 
+  mutate(summ = paste0(formatC(Mean.metric, digits = 2, format = "f"), " \u00B1 ",formatC(Margin.error, digits = 2, format = "f"))) %>%
   select(Phase, Site_Type, Metric, summ) %>% 
   pivot_wider(names_from = Phase, values_from = summ)
 
 
-writexl::write_xlsx(summary_sites_by_phase_type_1320, path = paste0(plot_folder,"/Habitat_Table3.xlsx"))
-writexl::write_xlsx(sum_phase_type, path = paste0(plot_folder,"/Habitat_Table4.xlsx"))
+writexl::write_xlsx(summary_sites_by_phase_type_1320, path = paste0(plot_folder,"/Habitat_Table_all_sites_metric_phase"))
+writexl::write_xlsx(sum_phase_type, path = paste0(plot_folder,"/Habitat_Table_all_sites_metric_phase_formatted.xlsx"))
+
+sum_phase_type_se <- summary_sites_by_phase_type_1320 %>% 
+  mutate(summ = paste0(formatC(Mean.metric, digits = 2, format = "f"), " \u00B1 ",formatC(SE.metric, digits = 2, format = "f"))) %>%
+  select(Phase, Site_Type, Metric, summ) %>% 
+  pivot_wider(names_from = Phase, values_from = summ)
+
+writexl::write_xlsx(sum_phase_type_se, path = paste0(plot_folder,"/Habitat_Table_all_sites_metric_phase_formatted_se.xlsx"))
+
+sum_phase_type_sd <- summary_sites_by_phase_type_1320 %>% 
+  mutate(summ = paste0(formatC(Mean.metric, digits = 2, format = "f"), " \u00B1 ",formatC(SD.metric, digits = 2, format = "f"))) %>%
+  select(Phase, Site_Type, Metric, summ) %>% 
+  pivot_wider(names_from = Phase, values_from = summ)
+
+writexl::write_xlsx(sum_phase_type_sd, path = paste0(plot_folder,"/Habitat_Table_all_sites_metric_phase_formatted_sd.xlsx"))
+
+
+####Summary by Site Type & Metric per Year ####
+summary_sites_by_year_type_1320 <- df_habitat %>%
+  pivot_longer(cols = QHEI_Score:Visual_Water_Clarity, names_to = "Metric", values_to = "Value", values_drop_na = F) %>% 
+  group_by(Year, Site_Type, Metric) %>% 
+  summarize(Total_Sites = n_distinct(Site_ID),
+            Mean.metric = mean(Value, na.rm = T),
+            Min.metric = min(Value, na.rm = T),
+            Max.metric = max(Value, na.rm = T),
+            N.metric = sum(!is.na(Value)),
+            N.NA = sum(is.na(Value)),
+            SD.metric =sd(Value, na.rm = TRUE)
+  ) %>% 
+  mutate(SE.metric = SD.metric / sqrt(N.metric),
+         Lower.ci = Mean.metric - qt(1 - (0.05 / 2), N.metric - 1) * SE.metric,
+         Upper.ci = Mean.metric + qt(1 - (0.05 / 2), N.metric - 1) * SE.metric,
+         Margin.error = qt(1 - (0.05 / 2), N.metric - 1) * SE.metric)
+
+sum_year_type <- summary_sites_by_year_type_1320 %>% 
+  mutate(summ = paste0(formatC(Mean.metric, digits = 2, format = "f"), " \u00B1 ",formatC(Margin.error, digits = 2, format = "f"))) %>% 
+  select(Year, Site_Type, Metric, summ) %>% 
+  pivot_wider(names_from = Year, values_from = summ)
+
+writexl::write_xlsx(summary_sites_by_year_type_1320, path = paste0(plot_folder,"/Habitat_Table_all_sites_metric_year.xlsx"))
+writexl::write_xlsx(sum_year_type, path = paste0(plot_folder,"/Habitat_Table_all_sites_metric_year_formatted.xlsx"))
+
+sum_year_type_se <- summary_sites_by_year_type_1320 %>% 
+  mutate(summ = paste0(formatC(Mean.metric, digits = 2, format = "f"), " \u00B1 ",formatC(SE.metric, digits = 2, format = "f"))) %>% 
+  select(Year, Site_Type, Metric, summ) %>% 
+  pivot_wider(names_from = Year, values_from = summ)
+
+writexl::write_xlsx(sum_year_type_se, path = paste0(plot_folder,"/Habitat_Table_all_sites_metric_year_formatted_se.xlsx"))
 
 #### Drop Visual Water Clarity. There are too many NA's for phases I & II to reasonable to use for analysis
 
@@ -517,6 +565,28 @@ for (met in metric_list) {
 }
 
 
+###  ISWS Scatter Plots by Year ###
+isws_sites_restructure <- df_habitat %>%
+  select(-c(Visual_Water_Clarity)) %>% 
+  filter(Site_Type == "ISWS") %>% 
+  pivot_longer(cols = QHEI_Score:Turbidity, names_to = "Metric", values_to = "Value", values_drop_na = F)
+
+for (met in metric_list) {
+  isws_sites_restructure %>%
+    filter(Metric == met) %>% 
+    ggplot(aes(x = Year, y = Value)) +
+    geom_point() +
+    geom_jitter() +
+    ylab(str_replace_all(met, "_", " ")) +
+    labs(title = paste0(str_replace_all(met, "_", " ")," at ISWS Sites from 2014-2020")) 
+  
+  ggsave(paste0("scatter_by_year_",str_to_lower(met),".pdf"), 
+         width = 8, 
+         height = 8, 
+         path = paste0(plot_folder, "/ISWS"), units = "in")
+}  
+  
+  
 ### ISWS Sites - Boxplots ###
 for (met in metric_list) {
   df_habitat %>%

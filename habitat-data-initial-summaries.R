@@ -100,7 +100,7 @@ sum_phase_type_sd <- summary_sites_by_phase_type_1320 %>%
 writexl::write_xlsx(sum_phase_type_sd, path = paste0(plot_folder,"/Habitat_Table_all_sites_metric_phase_formatted_sd.xlsx"))
 
 
-####Summary by Site Type & Metric per Year ####
+#### Summary by Site Type & Metric per Year ####
 summary_sites_by_year_type_1320 <- df_habitat %>%
   pivot_longer(cols = QHEI_Score:Visual_Water_Clarity, names_to = "Metric", values_to = "Value", values_drop_na = F) %>% 
   group_by(Year, Site_Type, Metric) %>% 
@@ -175,7 +175,27 @@ for (met in metric_list) {
          path = paste0(plot_folder, "/Random_ByPhase"), units = "in")
 }
 
-### Random Site By Year - Barplots with 95% CI
+
+### Random Sites - Boxplots ###
+for (met in metric_list) {
+  df_habitat %>%
+    # pivot_longer(cols = QHEI_Score:Visual_Water_Clarity, names_to = "Metric", values_to = "Value", values_drop_na = F) %>% 
+    filter(Site_Type == "random") %>% 
+    ggplot(aes_string(x= "Phase", y= met)) +
+    geom_boxplot() +
+    scale_color_viridis()+
+    labs(x = "Phase",
+         y = str_replace_all(met, "_", " "), 
+         title = paste0("Boxplot of ", str_replace_all(met, "_", " ")," at Random Sites by Project Phase"))
+  
+  ggsave(paste0(str_to_lower(met),"_1320_boxplot_random_by_phase.pdf"), 
+         width = 8, 
+         height = 8, 
+         path = paste0(plot_folder, "/Random_ByPhase"), units = "in")
+}
+
+
+#### Random Site By Year - Barplots with 95% CI ####
 summary_random_sites_by_year_1320 <- df_habitat %>%
   filter(Site_Type == "random") %>% 
   pivot_longer(cols = QHEI_Score:Turbidity, names_to = "Metric", values_to = "Value", values_drop_na = F) %>% 
@@ -212,26 +232,45 @@ for (met in metric_list) {
          path = paste0(plot_folder, "/Random_ByYear"), units = "in")
 }
 
+#### Summary Random Only by Year ####
+
+summary_random_sites_by_year_1320 <- df_habitat %>%
+  filter(Site_Type == "random") %>% 
+  pivot_longer(cols = QHEI_Score:Turbidity, names_to = "Metric", values_to = "Value", values_drop_na = F) %>% 
+  group_by(Year, Metric) %>% 
+  summarize(Total_Sites = n_distinct(Site_ID),
+            Mean.metric = mean(Value, na.rm = T),
+            Min.metric = min(Value, na.rm = T),
+            Max.metric = max(Value, na.rm = T),
+            N.metric = sum(!is.na(Value)),
+            N.NA = sum(is.na(Value)),
+            SD.metric =sd(Value, na.rm = TRUE)
+  ) %>% 
+  mutate(SE.metric = SD.metric / sqrt(N.metric),
+         Lower.ci = Mean.metric - qt(1 - (0.05 / 2), N.metric - 1) * SE.metric,
+         Upper.ci = Mean.metric + qt(1 - (0.05 / 2), N.metric - 1) * SE.metric)    
+
+metric_list <- unique(summary_random_sites_by_year_1320$Metric) 
 
 
-### Random Sites - Boxplots ###
 for (met in metric_list) {
-  df_habitat %>%
-    # pivot_longer(cols = QHEI_Score:Visual_Water_Clarity, names_to = "Metric", values_to = "Value", values_drop_na = F) %>% 
-    filter(Site_Type == "random") %>% 
-    ggplot(aes_string(x= "Phase", y= met)) +
-    geom_boxplot() +
+  summary_random_sites_by_year_1320 %>%
+    filter(Metric == met) %>% 
+    ggplot() +
+    geom_bar( aes(x=Year, y= Mean.metric), stat="identity", alpha=0.7)+
+    geom_errorbar( aes(x=Year, ymin=Lower.ci, ymax=Upper.ci), width=0.25, alpha=0.9, size=1.25) +
+    geom_pointrange( aes(x=Year, y=Mean.metric, ymin=Lower.ci, ymax=Upper.ci), alpha=0.9, size=1.25) +
     scale_color_viridis()+
-    labs(x = "Phase",
-         y = str_replace_all(met, "_", " "), 
-         title = paste0("Boxplot of ", str_replace_all(met, "_", " ")," at Random Sites by Project Phase"))
+    labs(y = paste0("Mean ", str_replace_all(met, "_", " ")), 
+         title = paste0("Mean ", str_replace_all(met, "_", " ")," of Random Sites by Year"), 
+         caption = "Metric mean with 95% Confidence Intervals")
   
-  ggsave(paste0(str_to_lower(met),"_1320_boxplot_random_by_phase.pdf"), 
+  ggsave(paste0("RandomByYear",str_to_lower(met),"_barplot.pdf"), 
          width = 8, 
          height = 8, 
-         path = paste0(plot_folder, "/Random_ByPhase"), units = "in")
+         path = paste0(plot_folder, "/Random_ByYear"), units = "in")
 }
-
+####
 #### Summary Sensitive Species Only by Phase ####
 summary_sensitive_sites_by_phase_1320 <- df_habitat %>%
   filter(Site_Type == "copper") %>% 
@@ -305,6 +344,51 @@ for (met in metric_list) {
 
 
 ####
+
+#### Summary Sensitive Species Only by Year ####
+
+summary_sensitive_sites_by_year_1320 <- df_habitat %>%
+  filter(Site_Type == "copper") %>% 
+  pivot_longer(cols = QHEI_Score:Turbidity, names_to = "Metric", values_to = "Value", values_drop_na = F) %>% 
+  group_by(Year, Metric) %>% 
+  summarize(Total_Sites = n_distinct(Site_ID),
+            Mean.metric = mean(Value, na.rm = T),
+            Min.metric = min(Value, na.rm = T),
+            Max.metric = max(Value, na.rm = T),
+            N.metric = sum(!is.na(Value)),
+            N.NA = sum(is.na(Value)),
+            SD.metric =sd(Value, na.rm = TRUE)
+  ) %>% 
+  mutate(SE.metric = SD.metric / sqrt(N.metric),
+         Lower.ci = Mean.metric - qt(1 - (0.05 / 2), N.metric - 1) * SE.metric,
+         Upper.ci = Mean.metric + qt(1 - (0.05 / 2), N.metric - 1) * SE.metric) %>% 
+  ungroup() %>% 
+  drop_na()
+
+metric_list <- summary_sensitive_sites_by_year_1320 %>% 
+  select(Metric) %>% 
+  arrange() %>% 
+  unique()
+
+metric_list <- unique(metric_list$Metric)
+
+for (met in metric_list) {
+  summary_sensitive_sites_by_year_1320 %>%
+    filter(Metric == met) %>% 
+    ggplot() +
+    geom_bar( aes(x=Year, y= Mean.metric), stat="identity", alpha=0.7)+
+    geom_errorbar( aes(x=Year, ymin=Lower.ci, ymax=Upper.ci), width=0.25, alpha=0.9, size=1.25) +
+    geom_pointrange( aes(x=Year, y=Mean.metric, ymin=Lower.ci, ymax=Upper.ci), alpha=0.9, size=1.25) +
+    scale_color_viridis()+
+    labs(y = paste0("Mean ", str_replace_all(met, "_", " ")), 
+         title = paste0("Mean ", str_replace_all(met, "_", " ")," of Sensitive Species Sites by Year"), 
+         caption = "Metric mean with 95% Confidence Intervals")
+  
+  ggsave(paste0("SensitiveByYear_",str_to_lower(met),"_barplot.pdf"), 
+         width = 8, 
+         height = 8, 
+         path = paste0(plot_folder, "/SensitiveSpecies_ByYear"), units = "in")
+}
 
 #### Summary Paired Sites Only by Phase ####
 pair_list <- read_csv(file = paste0(analysis_path, "/Data/Paired_Site_Groupings.csv"))
@@ -386,6 +470,70 @@ sum_paired_phase_level <- summary_paired_sites_by_phase_1320 %>%
   pivot_wider(names_from = Phase, values_from = summ)
 
 writexl::write_xlsx(sum_paired_phase_level, path = paste0(plot_folder,"/Habitat_Table_Paired_Summary.xlsx"))
+#### Summary Paired Sites Only by Year ####
+
+summary_paired_sites_by_year_1319 <- df_habitat %>%
+  filter(Site_Type == "paired",
+         Year != 2020) %>%
+  left_join(pair_list) %>% 
+  pivot_longer(cols = QHEI_Score:Turbidity, names_to = "Metric", values_to = "Value", values_drop_na = F) %>% 
+  group_by(Year, Metric, CRP_Class) %>% 
+  summarize(Total_Sites = n_distinct(Site_ID),
+            Mean.metric = mean(Value, na.rm = T),
+            Min.metric = min(Value, na.rm = T),
+            Max.metric = max(Value, na.rm = T),
+            N.metric = sum(!is.na(Value)),
+            N.NA = sum(is.na(Value)),
+            SD.metric =sd(Value, na.rm = TRUE)
+  ) %>% 
+  mutate(SE.metric = SD.metric / sqrt(N.metric),
+         Lower.ci = Mean.metric - qt(1 - (0.05 / 2), N.metric - 1) * SE.metric,
+         Upper.ci = Mean.metric + qt(1 - (0.05 / 2), N.metric - 1) * SE.metric) %>% 
+  ungroup()
+
+for (met in metric_list) {
+  summary_paired_sites_by_year_1319 %>%
+    filter(Metric == met) %>% 
+    ggplot(aes(x=Year, y= Mean.metric, fill = CRP_Class)) +
+    geom_bar(position = "dodge",  stat="identity", alpha=0.7)+
+    geom_errorbar(aes(ymin=Lower.ci, ymax=Upper.ci), position = position_dodge(0.9),  width=0.20, alpha=0.9, size=1.00) +
+    geom_pointrange(aes(ymin=Lower.ci, ymax=Upper.ci), position = position_dodge(0.9), alpha=0.9, size=0.60) +
+    labs(y = paste0("Mean ", str_replace_all(met, "_", " ")), 
+         fill = "CRP Class",
+         title = paste0("Mean ", str_replace_all(met, "_", " ")," of Paired Sites by Year"), 
+         caption = "Metric mean with 95% Confidence Intervals")
+  
+  ggsave(paste0("PairedByYear_",str_to_lower(met),"_barplot.pdf"), 
+         width = 8, 
+         height = 8, 
+         path = paste0(plot_folder, "/Paired"), units = "in")
+}
+
+#### Paired Sites Summary Table by Year ####
+summary_paired_sites_by_year_1320 <- df_habitat %>%
+  filter(Site_Type == "paired")%>%
+  left_join(pair_list) %>% 
+  pivot_longer(cols = QHEI_Score:Turbidity, names_to = "Metric", values_to = "Value", values_drop_na = F) %>% 
+  group_by(Year, Metric, CRP_Class) %>% 
+  summarize(Total_Sites = n_distinct(Site_ID),
+            Mean.metric = mean(Value, na.rm = T),
+            Min.metric = min(Value, na.rm = T),
+            Max.metric = max(Value, na.rm = T),
+            N.metric = sum(!is.na(Value)),
+            N.NA = sum(is.na(Value)),
+            SD.metric =sd(Value, na.rm = TRUE)
+  ) %>% 
+  mutate(SE.metric = SD.metric / sqrt(N.metric),
+         Lower.ci = Mean.metric - qt(1 - (0.05 / 2), N.metric - 1) * SE.metric,
+         Upper.ci = Mean.metric + qt(1 - (0.05 / 2), N.metric - 1) * SE.metric) %>% 
+  ungroup()
+
+sum_paired_year_level <- summary_paired_sites_by_year_1320 %>% 
+  mutate(summ = paste0(formatC(Mean.metric, digits = 2, format = "f"), " \u00B1 ",formatC(SE.metric, digits = 2, format = "f"))) %>% 
+  select(Metric, Year, CRP_Class, summ) %>% 
+  pivot_wider(names_from = Year, values_from = summ)
+
+writexl::write_xlsx(sum_paired_year_level, path = paste0(plot_folder,"/Habitat_Table_Paired_SummaryByYear.xlsx"))
 
 #### Summary LD Sites Only by Year ####
 
